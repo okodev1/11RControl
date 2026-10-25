@@ -113,13 +113,13 @@
           <!-- SECTION 2: Central Display, Navigation & 6 Lit Soft Encoders -->
           <section class="panel-section center-console-section">
             <div class="lcd-and-nav-row">
-              <!-- Left Nav Buttons (Edit/View, Push State, Page 1/2) -->
+              <!-- Left Nav Buttons (Edit/View, Push State, Page 1/2/3) -->
               <div class="nav-col left-nav">
                 <button id="btn-view-mode" class="hw-rect-btn lit-amber" title="Cycle active Signal Block on LCD screen">
                   NEXT BLOCK
                 </button>
-                <button id="btn-sync-rig" class="hw-rect-btn" title="Push (Send) all current UI knob & bypass states to Eleven Rack via MIDI">
-                  PUSH TO 11R
+                <button id="btn-sync-rig" class="hw-rect-btn" title="Send Full Virtual Rig to Eleven Rack (Recalls Base Hardware Slot via PC, then pushes all 10 Block Bypasses & all Knob CCs)">
+                  SEND RIG
                 </button>
                 <div class="sw-buttons">
                   <button id="btn-sw1" class="hw-small-btn active" title="Parameter Page 1 (Knobs 1-6)">PAGE 1</button>
@@ -168,20 +168,27 @@
                         <!-- Contextual Amp Knob Layout Selector (ONLY shown when AMP block is active!) -->
                         <div class="lcd-amp-context-wrap" id="lcd-amp-context-wrap">
                           <label for="amp-model-select" class="lcd-mini-label">AMP:</label>
-                          <select id="amp-model-select" class="lcd-select" title="Select Amp Reference Profile to match the knob labels of your active hardware Rig (Note: Eleven Rack only switches actual Amp/Cab models via Rig Program Change)">
+                          <select id="amp-model-select" class="lcd-select" title="Select Amp Model for this Rig (Switches hardware to matching Base Rig PC & pushes all your current Rig bypasses and knob settings)">
                           </select>
-                          <button id="btn-jump-amp-rig" class="lcd-mini-btn" title="Switch Eleven Rack to a Preset/Rig featuring this Amp Model">LOAD RIG &#x279C;</button>
+                          <button id="btn-jump-amp-rig" class="lcd-mini-btn" title="Send Base Amp Rig (PC) + Push Full Virtual Rig CCs to Eleven Rack">SYNC AMP &#x279C;</button>
                         </div>
 
                         <!-- Contextual Cab & Mic Selector (ONLY shown when CAB block is active!) -->
                         <div class="lcd-amp-context-wrap hidden" id="lcd-cab-context-wrap">
                           <label for="cab-model-select" class="lcd-mini-label">CAB:</label>
-                          <select id="cab-model-select" class="lcd-select" title="15 Eleven Rack Speaker Cabinets (Note: Eleven Rack firmware does not assign MIDI CCs to hot-swap Cab/Mic models; change Rigs via PC to switch cabs on hardware)">
+                          <select id="cab-model-select" class="lcd-select" title="15 Eleven Rack Speaker Cabinets">
                           </select>
                           <label for="mic-model-select" class="lcd-mini-label">MIC:</label>
-                          <select id="mic-model-select" class="lcd-select" title="8 Eleven Rack Microphone Models">
+                          <select id="mic-model-select" class="lcd-select" title="10 Eleven Rack Microphone Models">
                           </select>
                           <button id="btn-mic-axis" class="lcd-mini-btn" title="Mic Placement: On-Axis (Brighter) vs Off-Axis (Warmer)">ON-AXIS</button>
+                        </div>
+
+                        <!-- Contextual Effect Model Selector (ONLY shown when WAH, DIST, FX1, FX2, MOD, DELAY, or REVERB is active!) -->
+                        <div class="lcd-amp-context-wrap hidden" id="lcd-fx-context-wrap">
+                          <label for="fx-model-select" class="lcd-mini-label" id="fx-model-label">MODEL:</label>
+                          <select id="fx-model-select" class="lcd-select" title="Select Effect Model for this block (Updates the 6 soft encoder parameter labels & saves with your Virtual Rig)">
+                          </select>
                         </div>
                       </div>
                       <span id="lcd-active-page-indicator">PAGE 1/2</span>
@@ -418,8 +425,9 @@
       <!-- Quick Rig Bank Switcher Card -->
       <div class="deck-card rig-browser-card">
         <div class="card-header">
-          <h3>RIG / PATCH SWITCHER (BANKS A–Z)</h3>
+          <h3>RIG / PATCH SWITCHER &amp; VIRTUAL RIG BUILDER</h3>
           <div class="bank-selector-controls">
+            <button id="btn-auto-push-rig" class="mini-toggle active" title="Virtual Rig Cheat Mode: Automatically sends Base Hardware PC + pushes all 10 Block Bypasses & all Knob CCs when switching Rigs or Amps">Auto-Push: ON</button>
             <label for="quick-bank-letter">Bank:</label>
             <select id="quick-bank-letter" class="compact-select"></select>
             <button id="btn-quick-user" class="mini-toggle active" title="User Banks A1-Z4 (Bank Select CC #0 = 0)">User (A–Z)</button>
@@ -450,13 +458,16 @@
         </div>
 
         <div class="snapshots-bar">
-          <span class="snap-label">SNAPSHOTS:</span>
-          <button class="snap-btn" id="btn-save-preset" title="Save current controller state & custom rig names">Save Snapshot</button>
-          <select id="preset-list-select" class="compact-select">
-            <option value="">-- Load Saved Snapshot --</option>
+          <span class="snap-label" title="Hardware Base Patch (PC) that supplies the underlying DSP Amp/Cab/FX models for this slot">BASE HW:</span>
+          <select id="base-hw-pc-select" class="compact-select" title="Choose which Hardware Rig Slot (PC 0-103) is recalled on the Eleven Rack before pushing your custom knob & bypass overrides">
           </select>
-          <button class="snap-btn" id="btn-export-json" title="Export all custom Rig names, CC map & snapshots as JSON">Export</button>
-          <button class="snap-btn" id="btn-import-json" title="Import configuration & presets from JSON">Import</button>
+          <button class="snap-btn" id="btn-save-preset" title="Save current Virtual Rig (Amp, Cab, FX models, Base HW slot, all Bypasses & Knobs) to library">Save Rig</button>
+          <select id="preset-list-select" class="compact-select">
+            <option value="">-- Load Saved Rig --</option>
+          </select>
+          <button class="snap-btn" id="btn-reset-slot" title="Reset current Rig slot back to default settings">Reset</button>
+          <button class="snap-btn" id="btn-export-json" title="Export all Virtual Rigs, custom Rig names, CC map & snapshots as JSON">Export</button>
+          <button class="snap-btn" id="btn-import-json" title="Import configuration & Virtual Rigs from JSON">Import</button>
           <input type="file" id="import-file-input" accept=".json" style="display:none" />
         </div>
       </div>
@@ -494,11 +505,11 @@
       <div class="modal-body">
         <div class="guide-grid">
           <div class="guide-card">
-            <h4>1. Why Amp &amp; Cab Selection Uses Program Change (PC)</h4>
+            <h4>1. Virtual Rig Cheat Mode (Base PC + Full CC Auto-Push)</h4>
             <p>
-              In the Eleven Rack firmware, <strong>Amp Model Selection</strong>, <strong>Cabinet Selection</strong>, <strong>Mic Selection</strong>, and <strong>Speaker Breakup</strong> do <em>not</em> have MIDI CC numbers assigned to hot-swap models within a single patch.
-              Instead, the Eleven Rack switches Amp &amp; Cab models by recalling complete <strong>Rigs via Program Change (PC 0–103)</strong>.
-              When viewing the <strong>AMP</strong> block on the LCD, use the <strong>LOAD RIG &rarr;</strong> button or Rig Footswitches (`A1–Z4`) to switch amps on the hardware, and use the <strong>KNOB LABELS</strong> dropdown to match the on-screen knob names to your active amp.
+              Standard MIDI 1.0 cannot hot-swap DSP models (Amp, Cab, FX1/FX2 type) via CC alone—it recalls models via <strong>Program Change (PC 0–103)</strong>.
+              To let you build complete custom Rigs on the interface, <strong>Auto-Push Mode</strong> performs a 2-stage MIDI burst whenever you switch Rigs, load a saved Rig, or pick an Amp:
+              <strong>1)</strong> It sends <code>Bank + PC</code> for the slot's <strong>Base HW Patch</strong> to load the underlying Amp/Cab/FX models, and <strong>2)</strong> 85ms later, it automatically blasts all <strong>10 Block Bypasses</strong> and all <strong>Knob Parameter CCs</strong> across every block so the hardware snaps to your exact web interface Rig!
             </p>
           </div>
 

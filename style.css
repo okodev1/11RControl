@@ -1463,10 +1463,21 @@ select:focus, input:focus {
 .snapshots-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
   border-top: 1px solid #262830;
   padding-top: 8px;
+  overflow: hidden;
+}
+
+#base-hw-pc-select {
+  max-width: 145px;
+  text-overflow: ellipsis;
+}
+
+#preset-list-select {
+  max-width: 135px;
+  text-overflow: ellipsis;
 }
 
 .snap-label {
