@@ -14,6 +14,7 @@ const DEFAULT_CC_MAP = {
   exp_pedal: 11,        // Multi-FX Expression Control (0-127)
   bank_select_msb: 0,   // Bank Select: 0 = User (A-Z), 1 = Factory (a-z)
   tap_tempo: 64,        // Tap Tempo Trigger
+  rig_input_guitar: 65, // Rig Input Select (0-63 = Guitar True-Z, 64-127 = Mic)
   tuner: 69,            // Chromatic Tuner On/Off (0-63=Off, 64-127=On)
 
   // Global Block Bypasses (0-63 = Off, 64-127 = On)
@@ -73,7 +74,7 @@ const DEFAULT_CC_MAP = {
   fx2_p4: 97,   // FX2 Setting 4
   fx2_p5: 98,   // FX2 Setting 5
   fx2_p6: 99,   // FX2 Setting 6
-  fx2_p7: 65,   // FX2 Setting 7
+  fx2_p7: 35,   // FX2 Setting 7 (Avoids CC 65/66/67 which switch Rig Input away from Guitar!)
   fx2_p8: 37,   // FX2 Setting 8
   fx2_p9: 46,   // FX2 Setting 9
   fx2_p10: 48,  // FX2 Setting 10
@@ -1640,11 +1641,12 @@ function sendFullVirtualRigToHardware(includeBasePC = true) {
   const executeParameterAndBypassBurst = () => {
     let paramCount = 0;
     // 1. Send all continuous parameter CCs across all 10 blocks first
+    // (Guard against CC 65, 66, 67 which toggle Eleven Rack Rig Input away from Guitar!)
     SIGNAL_BLOCKS.forEach(block => {
       block.params.forEach(p => {
         const cc = state.ccMap[p.key];
         const val = state.paramValues[p.key] ?? 64;
-        if (cc !== undefined) {
+        if (cc !== undefined && cc !== 65 && cc !== 66 && cc !== 67) {
           transmitRawCC(cc, val);
           paramCount++;
         }
@@ -1667,9 +1669,12 @@ function sendFullVirtualRigToHardware(includeBasePC = true) {
     transmitRawCC(state.ccMap.wah_pedal, state.paramValues.wah_pedal ?? 0);
     transmitRawCC(state.ccMap.exp_pedal, state.paramValues.exp_pedal ?? 64);
 
+    // 4. Explicitly lock Rig Input to Guitar (True-Z) (CC #65 = 0 forces Guitar Input)
+    transmitRawCC(state.ccMap.rig_input_guitar ?? 65, 0);
+
     logMidi(
       'tx',
-      `TX [Ch ${state.midiChannel + 1}] FULL RIG OVERRIDE (${currentSlotCode}: "${rigName}") -> ON:[${activeBlocks.join(',')}] | OFF:[${bypassedBlocks.join(',')}] + ${paramCount} Knob CCs pushed`
+      `TX [Ch ${state.midiChannel + 1}] FULL RIG OVERRIDE (${currentSlotCode}: "${rigName}") -> Input=GUITAR | ON:[${activeBlocks.join(',')}] | OFF:[${bypassedBlocks.join(',')}] + ${paramCount} Knob CCs`
     );
   };
 
@@ -1697,7 +1702,7 @@ function loadSavedState() {
     if (savedAutoPush !== null) {
       state.autoPushRig = savedAutoPush === 'true';
     }
-    const savedCC = localStorage.getItem('11r_cc_map_v3');
+    const savedCC = localStorage.getItem('11r_cc_map_v4');
     if (savedCC) {
       state.ccMap = { ...DEFAULT_CC_MAP, ...JSON.parse(savedCC) };
     }
@@ -2248,7 +2253,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         if (data.ccMap) {
           state.ccMap = { ...DEFAULT_CC_MAP, ...data.ccMap };
-          localStorage.setItem('11r_cc_map_v3', JSON.stringify(state.ccMap));
+          localStorage.setItem('11r_cc_map_v4', JSON.stringify(state.ccMap));
         }
         if (data.customRigNames) {
           state.customRigNames = { ...state.customRigNames, ...data.customRigNames };
@@ -2298,7 +2303,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-reset-default-ccs').addEventListener('click', () => {
     state.ccMap = { ...DEFAULT_CC_MAP };
-    localStorage.setItem('11r_cc_map_v3', JSON.stringify(state.ccMap));
+    localStorage.setItem('11r_cc_map_v4', JSON.stringify(state.ccMap));
     openCCModal();
     renderAll();
     logMidi('info', 'Reset MIDI CC mappings to Official Table 12 Eleven Rack defaults.');
@@ -2311,7 +2316,7 @@ window.addEventListener('DOMContentLoaded', () => {
       const val = Math.max(0, Math.min(127, parseInt(inp.value, 10) || 0));
       state.ccMap[key] = val;
     });
-    localStorage.setItem('11r_cc_map_v3', JSON.stringify(state.ccMap));
+    localStorage.setItem('11r_cc_map_v4', JSON.stringify(state.ccMap));
     document.getElementById('cc-modal-backdrop').classList.add('hidden');
     renderAll();
     logMidi('info', 'Saved custom MIDI CC mappings.');
